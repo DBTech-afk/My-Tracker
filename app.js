@@ -34,19 +34,54 @@ function render(){
 }
 function renderMeals(target,list,group){
  const el=$(target);if(!list.length){el.innerHTML='<div class="empty">Nothing logged here yet.</div>';return}
- if(!group){el.innerHTML=list.map((x,i)=>`<div class="food-row"><div><b>${safe(x.name)}</b><small>${safe(x.serving||"1 serving")} · ${fmt(x.calories)} kcal</small></div><button class="btn secondary" data-saved="${i}">Add</button></div>`).join("");el.querySelectorAll("[data-saved]").forEach(b=>b.onclick=()=>{const x=state.saved[+b.dataset.saved];addFood({...x,meal:"Snack",date:$("#foodDate").value||today()});});return}
- const meals=["Breakfast","Lunch","Dinner","Snack"];el.innerHTML=meals.map(m=>{const arr=list.filter(x=>x.meal===m);if(!arr.length)return "";return `<div class="meal"><h3>${m}</h3>${arr.map(x=>`<div class="food-row"><div>${safe(x.name)}<small>${safe(x.serving||"1 serving")}</small></div><strong>${fmt(x.calories)} kcal<br><button class="muted" style="border:0;background:none;padding:2px" data-del="${x.id}">Remove</button></strong></div>`).join("")}</div>`}).join("")||'<div class="empty">No food logged for this date.</div>';
+ if(!group){el.innerHTML=list.map((x,i)=>`<div class="food-row"><div><b>${safe(x.name)}</b><small>${safe(x.serving||"1 serving")} · ${fmt(x.calories)} kcal</small></div><div class="row"><button class="btn secondary" data-saved="${i}">Add</button><button class="btn danger" data-unsave="${i}">×</button></div></div>`).join("");el.querySelectorAll("[data-saved]").forEach(b=>b.onclick=()=>askAndAddFood(state.saved[+b.dataset.saved]));el.querySelectorAll("[data-unsave]").forEach(b=>b.onclick=()=>{state.saved.splice(+b.dataset.unsave,1);save();render()});return}
+ const meals=["Breakfast","Lunch","Dinner","Snack"];el.innerHTML=meals.map(m=>{const arr=list.filter(x=>x.meal===m);if(!arr.length)return "";return `<div class="meal"><h3>${m}</h3>${arr.map(x=>`<div class="food-row"><div>${safe(x.name)}<small>${safe(x.serving||"1 serving")}</small></div><strong>${fmt(x.calories)} kcal<br><div class="row"><button class="muted" style="border:0;background:none;padding:2px" data-fav="${x.id}">☆ Save</button><button class="muted" style="border:0;background:none;padding:2px" data-del="${x.id}">Remove</button></div></strong></div>`).join("")}</div>`}).join("")||'<div class="empty">No food logged for this date.</div>';
  el.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{state.foods=state.foods.filter(x=>x.id!==b.dataset.del);save();render()});
+ el.querySelectorAll("[data-fav]").forEach(b=>b.onclick=()=>{const x=state.foods.find(x=>x.id===b.dataset.fav);if(x)saveFavorite(x)});
 }
 function renderWeights(){const ws=[...state.weights].sort((a,b)=>b.date.localeCompare(a.date));$("#weightHistory").innerHTML=ws.length?ws.map(w=>`<div class="food-row"><div><b>${new Date(w.date+"T12:00:00").toLocaleDateString()}</b><small>Weigh-in</small></div><strong>${w.weight.toFixed(1)} lb<br><button class="muted" data-wdel="${w.id}" style="border:0;background:none">Delete</button></strong></div>`).join(""):'<div class="empty">No weigh-ins recorded yet.</div>';$("#weightHistory").querySelectorAll("[data-wdel]").forEach(b=>b.onclick=()=>{state.weights=state.weights.filter(w=>w.id!==b.dataset.wdel);save();render()})}
-function addFood(f){state.foods.push({...f,id:crypto.randomUUID(),date:f.date||$("#foodDate").value||today()});save();render();$("#searchResults").innerHTML="";$("#foodSearch").value="";}
+function addFood(f){const qty=num(f.quantity||1)||1;const scaled={...f};["calories","sugar","sodium","protein","carbs","fat"].forEach(k=>scaled[k]=Math.round(num(f[k])*qty*10)/10);scaled.serving=(f.serving||"1 serving")+(qty!==1?` × ${qty}`:"");delete scaled.quantity;state.foods.push({...scaled,id:crypto.randomUUID(),date:f.date||$("#foodDate").value||today()});save();render();$("#searchResults").innerHTML="";$("#foodSearch").value="";}
+function askAndAddFood(f){const q=prompt(`How many servings of ${f.name}? Enter a number (e.g. 0.5, 1, 2).`,"1");if(q===null)return;const qty=Number(q);if(!Number.isFinite(qty)||qty<=0||qty>100){alert("Please enter a serving amount greater than 0 and no more than 100.");return;}let meal=prompt("Meal: Breakfast, Lunch, Dinner, or Snack","Snack")||"Snack";if(!["Breakfast","Lunch","Dinner","Snack"].includes(meal))meal="Snack";addFood({...f,quantity:qty,meal});}
+function saveFavorite(f){const item={...f};delete item.id;delete item.date;delete item.quantity;if(state.saved.some(x=>x.name===item.name)){alert("That food is already in Favorites.");return;}state.saved.push(item);save();render();alert("Saved to Favorites.");}
 const starter=[
 ["Banana, medium",105,14.4,1,1.3,27,0.4],["Apple, medium",95,19,2,0.5,25,0.3],["Egg, large",72,0.2,71,6.3,0.4,4.8],["Chicken breast, cooked (100 g)",165,0,74,31,0,3.6],["White rice, cooked (1 cup)",205,0.1,2,4.3,44.5,0.4],["Oatmeal, cooked (1 cup)",154,1.1,115,5.9,27.4,2.6],["Whole milk (1 cup)",149,12.3,105,7.7,11.7,7.9],["Greek yogurt, plain (170 g)",100,5,60,17,6,0.7],["Bread, whole wheat (1 slice)",80,1.5,140,4,14,1.1],["Peanut butter (2 tbsp)",190,3.4,136,7,7,16],["Broccoli, cooked (1 cup)",55,1.5,64,3.7,11.2,0.6],["Baked potato, medium",161,2,17,4.3,36.6,0.2],["Cheddar cheese (1 oz)",114,0.1,180,7,0.4,9.4],["Cola, regular (12 fl oz)",140,39,15,0,39,0],["Ground beef, cooked 85% lean (3 oz)",213,0,75,22,0,13]]
 const starterFoods=starter.map(a=>({name:a[0],calories:a[1],sugar:a[2],sodium:a[3],protein:a[4],carbs:a[5],fat:a[6],serving:"1 listed serving"}));
-function resultCard(f){return `<div class="result"><div><b>${safe(f.name)}</b><small>${fmt(f.calories)} kcal · sugar ${Number(f.sugar||0).toFixed(1)} g · sodium ${fmt(f.sodium)} mg</small></div><button class="btn secondary" data-addfood="${safe(JSON.stringify(f))}">Add</button></div>`}
+function resultCard(f,i){return `<div class="result"><div><b>${safe(f.name)}</b><small>${fmt(f.calories)} kcal · sugar ${Number(f.sugar||0).toFixed(1)} g · sodium ${fmt(f.sodium)} mg<br>${safe(f.serving||"per listed serving")}</small></div><div class="row"><button class="btn secondary" data-addfood="${i}">Add</button><button class="btn ghost" data-favresult="${i}">☆</button></div></div>`}
 function showResults(arr){$("#searchResults").innerHTML=arr.length?arr.map(resultCard).join(""):'<div class="empty">No matches found. Try another term or enter the food manually.</div>';$("#searchResults").querySelectorAll("[data-addfood]").forEach(b=>b.onclick=()=>{let f=JSON.parse(b.dataset.addfood);let meal=prompt("Meal: Breakfast, Lunch, Dinner, or Snack","Snack")||"Snack";if(!["Breakfast","Lunch","Dinner","Snack"].includes(meal))meal="Snack";addFood({...f,meal})})}
 $("#searchBtn").onclick=async()=>{const q=$("#foodSearch").value.trim();if(!q)return;const local=starterFoods.filter(f=>f.name.toLowerCase().includes(q.toLowerCase()));showResults(local);try{const url="https://world.openfoodfacts.org/cgi/search.pl?search_terms="+encodeURIComponent(q)+"&search_simple=1&action=process&json=1&page_size=12";const r=await fetch(url);if(!r.ok)throw 0;const d=await r.json();const online=(d.products||[]).filter(p=>p.product_name&&p.nutriments).map(p=>({name:p.product_name+(p.brands?" — "+p.brands:""),serving:p.serving_size||"100 g",calories:p.nutriments["energy-kcal_100g"]||0,sugar:p.nutriments.sugars_100g||0,sodium:(p.nutriments.sodium_100g||0)*1000,protein:p.nutriments.proteins_100g||0,carbs:p.nutriments.carbohydrates_100g||0,fat:p.nutriments.fat_100g||0,meal:"Snack"}));showResults([...local,...online].slice(0,20));}catch(e){if(!local.length)$("#searchResults").innerHTML='<div class="empty">Online search is unavailable right now. Try again when connected or add the food manually.</div>'}}
 $("#foodSearch").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();$("#searchBtn").click()}});
+async function lookupBarcode(code){
+ try{
+  const r=await fetch("https://world.openfoodfacts.org/api/v2/product/"+encodeURIComponent(code)+".json");
+  if(!r.ok)throw new Error("Lookup failed");
+  const data=await r.json(),p=data.product;
+  if(data.status!==1||!p){alert("No product was found for barcode "+code+". You can enter the food manually.");return;}
+  const n=p.nutriments||{};
+  const food={name:(p.product_name||"Scanned product")+(p.brands?" — "+p.brands:""),serving:p.serving_size||"100 g",calories:n["energy-kcal_100g"]||0,sugar:n.sugars_100g||0,sodium:(n.sodium_100g||0)*1000,protein:n.proteins_100g||0,carbs:n.carbohydrates_100g||0,fat:n.fat_100g||0,meal:"Snack",barcode:code};
+  showResults([food]);
+ }catch(e){alert("Could not reach the food database. Check your internet connection and try again.");}
+}
+let scanStream=null,scanTimer=null;
+async function startScanner(){
+ $("#scannerPanel").classList.remove("hidden");
+ const video=$("#scannerVideo"),status=$("#scannerStatus");
+ if(!navigator.mediaDevices?.getUserMedia){status.textContent="Camera access is unavailable. Use Enter barcode instead.";return;}
+ if(!("BarcodeDetector" in window)){status.textContent="Native barcode detection is not supported on this device/browser. Use Enter barcode instead.";return;}
+ try{
+  const supported=await BarcodeDetector.getSupportedFormats();
+  const formats=["ean_13","ean_8","upc_a","upc_e","code_128"].filter(x=>supported.includes(x));
+  if(!formats.length){status.textContent="No compatible barcode formats. Use Enter barcode.";return;}
+  const detector=new BarcodeDetector({formats});
+  scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false});
+  video.srcObject=scanStream;await video.play();status.textContent="Point your camera at the product barcode.";
+  scanTimer=setInterval(async()=>{try{const codes=await detector.detect(video);if(codes.length&&codes[0].rawValue){const code=codes[0].rawValue;stopScanner();await lookupBarcode(code);}}catch(err){}},450);
+ }catch(e){status.textContent="Camera permission was denied or the camera is unavailable. Use Enter barcode instead.";}
+}
+function stopScanner(){if(scanTimer)clearInterval(scanTimer);scanTimer=null;if(scanStream)scanStream.getTracks().forEach(t=>t.stop());scanStream=null;const v=$("#scannerVideo");if(v)v.srcObject=null;$("#scannerPanel").classList.add("hidden")}
+$("#scanBtn").onclick=startScanner;$("#stopScanBtn").onclick=stopScanner;
+$("#manualBarcodeBtn").onclick=()=>{const code=prompt("Enter the numbers beneath the barcode:");if(code&&/^\d{8,14}$/.test(code.trim()))lookupBarcode(code.trim());else if(code)alert("Please enter a barcode containing 8–14 digits.");};
+window.addEventListener("pagehide",stopScanner);
+
 $("#manualFood").onsubmit=e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.target));const f={...d,calories:num(d.calories),sugar:num(d.sugar),sodium:num(d.sodium),protein:num(d.protein),carbs:num(d.carbs),fat:num(d.fat),date:$("#foodDate").value};addFood(f);e.target.reset();};
 $("#foodDate").onchange=()=>{const d=$("#foodDate").value;renderMeals("#todayMeals",entries(d),true);const t=totals(entries(d));$("#entryCount").textContent=entries(d).length+" entries";};
 $("#quickAdd").onclick=()=>{document.querySelector('[data-page="food"]').click();$("#foodSearch").focus()};

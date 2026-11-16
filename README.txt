@@ -2,7 +2,7 @@ NUTRITRACK — INSTALLABLE FOOD & WEIGHT TRACKER
 
 WHAT'S INCLUDED
 - Mobile-first responsive web app, designed for phone and desktop.
-- Installable PWA shell (manifest + service worker).
+- Installable PWA shell (manifest + service worker + 192px/512px PNG icons, including maskable icon).
 - Food diary with breakfast, lunch, dinner and snacks.
 - Starter food list and online Open Food Facts product search.
 - Manual food entry with calories, sugar, sodium, protein, carbs and fat.
@@ -33,3 +33,19 @@ Online search uses the Open Food Facts public search endpoint. Product nutrition
 
 HEALTH DISCLAIMER
 This is a personal logging tool, not a medical device or medical advice. Goals are starter defaults only; choose appropriate targets with a qualified healthcare professional.
+
+VERSION 2.0 ADDITIONS
+- Barcode lookup through Open Food Facts using Android camera when BarcodeDetector is supported.
+- Manual barcode entry fallback for devices without native barcode detection.
+- Serving multiplier when adding foods from search, barcode lookup, and favorites.
+- Save logged foods using ☆ Save; reuse them from Favorites.
+- Favorites can be removed and re-added with a chosen serving multiplier.
+Camera permission is requested only when Scan barcode is tapped. Barcode numbers are sent to Open Food Facts for product lookup. If camera scanning is unsupported, use Enter barcode.
+
+NUTRITRACK 2.2 BARCODE SCANNER UPDATE
+- Replaces reliance on the browser-native BarcodeDetector API with html5-qrcode.
+- Scanner library is loaded only when Scan barcode is tapped.
+- Uses the rear camera where the browser exposes camera labels, and falls back to the last available camera.
+- Supports common EAN/UPC product barcode formats through the scanner library.
+- Requires HTTPS, camera permission, and internet access to load the scanner library and look up product nutrition.
+- Manual barcode entry remains available as a fallback.

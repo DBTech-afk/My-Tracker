@@ -46,8 +46,12 @@
 <h3 style="margin:0 0 12px">Add a food</h3>
 <div class="food-search"><input id="foodSearch" placeholder="Search foods or branded products"><button class="btn" id="searchBtn">Search</button></div>
 <div class="row" style="margin-top:10px"><button class="btn secondary" id="scanBtn" type="button">▦ Scan barcode</button><button class="btn ghost" id="manualBarcodeBtn" type="button">Enter barcode</button></div>
-<div id="scannerPanel" class="hidden" style="margin-top:12px"><video id="scannerVideo" playsinline muted style="width:100%;max-height:260px;background:#172a25;border-radius:12px"></video><p id="scannerStatus" class="muted" aria-live="polite">Starting camera…</p><button class="btn danger" id="stopScanBtn" type="button">Stop scanner</button></div>
-<div class="notice">Barcode scanning uses your camera when supported. If native barcode detection is unavailable, enter the barcode number instead. Online product lookup requires internet access.</div>
+<div id="scannerPanel" class="hidden" style="margin-top:12px">
+<div id="scannerReader" style="width:100%;max-width:520px;margin:auto;overflow:hidden;border-radius:12px"></div>
+<p id="scannerStatus" class="muted" aria-live="polite">Preparing camera scanner…</p>
+<button class="btn danger" id="stopScanBtn" type="button">Stop scanner</button>
+</div>
+<div class="notice">Barcode scanning opens your phone camera using a dedicated scanner library. Camera access requires HTTPS and permission. You can always enter the barcode number manually.</div>
 <div class="notice">Search the built-in starter list or Open Food Facts online. Online search needs an internet connection. You can also add your own food below.</div>
 <div id="searchResults" class="results"></div>
 </div>

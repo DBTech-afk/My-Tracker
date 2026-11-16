@@ -47,8 +47,30 @@ const starter=[
 ["Banana, medium",105,14.4,1,1.3,27,0.4],["Apple, medium",95,19,2,0.5,25,0.3],["Egg, large",72,0.2,71,6.3,0.4,4.8],["Chicken breast, cooked (100 g)",165,0,74,31,0,3.6],["White rice, cooked (1 cup)",205,0.1,2,4.3,44.5,0.4],["Oatmeal, cooked (1 cup)",154,1.1,115,5.9,27.4,2.6],["Whole milk (1 cup)",149,12.3,105,7.7,11.7,7.9],["Greek yogurt, plain (170 g)",100,5,60,17,6,0.7],["Bread, whole wheat (1 slice)",80,1.5,140,4,14,1.1],["Peanut butter (2 tbsp)",190,3.4,136,7,7,16],["Broccoli, cooked (1 cup)",55,1.5,64,3.7,11.2,0.6],["Baked potato, medium",161,2,17,4.3,36.6,0.2],["Cheddar cheese (1 oz)",114,0.1,180,7,0.4,9.4],["Cola, regular (12 fl oz)",140,39,15,0,39,0],["Ground beef, cooked 85% lean (3 oz)",213,0,75,22,0,13]]
 const starterFoods=starter.map(a=>({name:a[0],calories:a[1],sugar:a[2],sodium:a[3],protein:a[4],carbs:a[5],fat:a[6],serving:"1 listed serving"}));
 function resultCard(f,i){return `<div class="result"><div><b>${safe(f.name)}</b><small>${fmt(f.calories)} kcal · sugar ${Number(f.sugar||0).toFixed(1)} g · sodium ${fmt(f.sodium)} mg<br>${safe(f.serving||"per listed serving")}</small></div><div class="row"><button class="btn secondary" data-addfood="${i}">Add</button><button class="btn ghost" data-favresult="${i}">☆</button></div></div>`}
-function showResults(arr){$("#searchResults").innerHTML=arr.length?arr.map(resultCard).join(""):'<div class="empty">No matches found. Try another term or enter the food manually.</div>';$("#searchResults").querySelectorAll("[data-addfood]").forEach(b=>b.onclick=()=>{let f=JSON.parse(b.dataset.addfood);let meal=prompt("Meal: Breakfast, Lunch, Dinner, or Snack","Snack")||"Snack";if(!["Breakfast","Lunch","Dinner","Snack"].includes(meal))meal="Snack";addFood({...f,meal})})}
-$("#searchBtn").onclick=async()=>{const q=$("#foodSearch").value.trim();if(!q)return;const local=starterFoods.filter(f=>f.name.toLowerCase().includes(q.toLowerCase()));showResults(local);try{const url="https://world.openfoodfacts.org/cgi/search.pl?search_terms="+encodeURIComponent(q)+"&search_simple=1&action=process&json=1&page_size=12";const r=await fetch(url);if(!r.ok)throw 0;const d=await r.json();const online=(d.products||[]).filter(p=>p.product_name&&p.nutriments).map(p=>({name:p.product_name+(p.brands?" — "+p.brands:""),serving:p.serving_size||"100 g",calories:p.nutriments["energy-kcal_100g"]||0,sugar:p.nutriments.sugars_100g||0,sodium:(p.nutriments.sodium_100g||0)*1000,protein:p.nutriments.proteins_100g||0,carbs:p.nutriments.carbohydrates_100g||0,fat:p.nutriments.fat_100g||0,meal:"Snack"}));showResults([...local,...online].slice(0,20));}catch(e){if(!local.length)$("#searchResults").innerHTML='<div class="empty">Online search is unavailable right now. Try again when connected or add the food manually.</div>'}}
+function showResults(arr){
+ window.currentFoodResults=arr;
+ $("#searchResults").innerHTML=arr.length?arr.map((f,i)=>resultCard(f,i)).join(""):'<div class="empty">No matches found. Try another term or enter the food manually.</div>';
+ $("#searchResults").querySelectorAll("[data-addfood]").forEach(b=>b.onclick=()=>askAndAddFood(window.currentFoodResults[+b.dataset.addfood]));
+ $("#searchResults").querySelectorAll("[data-favresult]").forEach(b=>b.onclick=()=>saveFavorite(window.currentFoodResults[+b.dataset.favresult]));
+}
+$("#searchBtn").onclick=async()=>{
+ const q=$("#foodSearch").value.trim();if(!q)return;
+ const local=starterFoods.filter(f=>f.name.toLowerCase().includes(q.toLowerCase()));
+ showResults(local);
+ try{
+  const fields="product_name,brands,serving_size,nutriments";
+  const url="https://world.openfoodfacts.org/api/v2/search?search_terms="+encodeURIComponent(q)+"&page_size=12&fields="+fields;
+  const r=await fetch(url,{headers:{"Accept":"application/json"}});
+  if(!r.ok)throw new Error("HTTP "+r.status);
+  const d=await r.json();
+  const online=(d.products||[]).filter(p=>p.product_name&&p.nutriments).map(p=>({name:p.product_name+(p.brands?" — "+p.brands:""),serving:p.serving_size||"100 g",calories:p.nutriments["energy-kcal_100g"]||0,sugar:p.nutriments.sugars_100g||0,sodium:(p.nutriments.sodium_100g||0)*1000,protein:p.nutriments.proteins_100g||0,carbs:p.nutriments.carbohydrates_100g||0,fat:p.nutriments.fat_100g||0,meal:"Snack"}));
+  showResults([...local,...online].slice(0,20));
+  if(!local.length&&!online.length)$("#searchResults").innerHTML='<div class="empty">No matching products were found. Try a different search or enter the nutrition label manually.</div>';
+ }catch(e){
+  if(local.length)$("#searchResults").innerHTML='<div class="notice">Online food search could not connect. Your built-in matches are still available; try again later or add the food manually.</div>'+$("#searchResults").innerHTML;
+  else $("#searchResults").innerHTML='<div class="empty">Online search is temporarily unavailable. Check your internet connection, or enter the food manually.</div>';
+ }
+};
 $("#foodSearch").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();$("#searchBtn").click()}});
 async function lookupBarcode(code){
  try{
@@ -61,24 +83,63 @@ async function lookupBarcode(code){
   showResults([food]);
  }catch(e){alert("Could not reach the food database. Check your internet connection and try again.");}
 }
-let scanStream=null,scanTimer=null;
-async function startScanner(){
- $("#scannerPanel").classList.remove("hidden");
- const video=$("#scannerVideo"),status=$("#scannerStatus");
- if(!navigator.mediaDevices?.getUserMedia){status.textContent="Camera access is unavailable. Use Enter barcode instead.";return;}
- if(!("BarcodeDetector" in window)){status.textContent="Native barcode detection is not supported on this device/browser. Use Enter barcode instead.";return;}
- try{
-  const supported=await BarcodeDetector.getSupportedFormats();
-  const formats=["ean_13","ean_8","upc_a","upc_e","code_128"].filter(x=>supported.includes(x));
-  if(!formats.length){status.textContent="No compatible barcode formats. Use Enter barcode.";return;}
-  const detector=new BarcodeDetector({formats});
-  scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false});
-  video.srcObject=scanStream;await video.play();status.textContent="Point your camera at the product barcode.";
-  scanTimer=setInterval(async()=>{try{const codes=await detector.detect(video);if(codes.length&&codes[0].rawValue){const code=codes[0].rawValue;stopScanner();await lookupBarcode(code);}}catch(err){}},450);
- }catch(e){status.textContent="Camera permission was denied or the camera is unavailable. Use Enter barcode instead.";}
+let html5QrScanner=null;
+let scannerStarting=false;
+function loadHtml5Qrcode(){
+ return new Promise((resolve,reject)=>{
+  if(window.Html5Qrcode){resolve();return;}
+  const old=document.querySelector('script[data-html5-qrcode]');
+  if(old){old.addEventListener("load",()=>resolve(),{once:true});old.addEventListener("error",()=>reject(new Error("Scanner library failed to load")),{once:true});return;}
+  const script=document.createElement("script");
+  script.src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js";
+  script.async=true;script.dataset.html5Qrcode="1";
+  script.onload=()=>window.Html5Qrcode?resolve():reject(new Error("Scanner library did not initialize"));
+  script.onerror=()=>reject(new Error("Could not download scanner library"));
+  document.head.appendChild(script);
+ });
 }
-function stopScanner(){if(scanTimer)clearInterval(scanTimer);scanTimer=null;if(scanStream)scanStream.getTracks().forEach(t=>t.stop());scanStream=null;const v=$("#scannerVideo");if(v)v.srcObject=null;$("#scannerPanel").classList.add("hidden")}
-$("#scanBtn").onclick=startScanner;$("#stopScanBtn").onclick=stopScanner;
+async function startScanner(){
+ if(scannerStarting||html5QrScanner)return;
+ scannerStarting=true;
+ const panel=$("#scannerPanel"),status=$("#scannerStatus");
+ panel.classList.remove("hidden");
+ status.textContent="Loading barcode scanner…";
+ try{
+  if(!navigator.mediaDevices?.getUserMedia)throw new Error("Camera access is unavailable in this browser. Open the HTTPS website in Chrome and allow camera permission.");
+  await loadHtml5Qrcode();
+  html5QrScanner=new Html5Qrcode("scannerReader",{verbose:false});
+  const cameras=await Html5Qrcode.getCameras();
+  if(!cameras||!cameras.length)throw new Error("No camera was found. Check that your phone camera is available.");
+  const back=cameras.find(c=>/back|rear|environment/i.test(c.label));
+  const cameraId=(back||cameras[cameras.length-1]).id;
+  status.textContent="Point your rear camera at a product barcode.";
+  await html5QrScanner.start(cameraId,{fps:10,qrbox:{width:260,height:150},aspectRatio:1.6},
+   async decodedText=>{
+    if(!/^\d{8,14}$/.test(decodedText.trim())){status.textContent="Barcode detected, but it does not look like a standard product barcode. Keep scanning.";return;}
+    status.textContent="Barcode found. Looking up product…";
+    await stopScanner();
+    await lookupBarcode(decodedText.trim());
+   },
+   ()=>{}
+  );
+ }catch(e){
+  const message=(e&&e.message)?e.message:String(e);
+  status.textContent=message+" You can use Enter barcode instead.";
+  if(html5QrScanner){try{await html5QrScanner.clear()}catch(_){}html5QrScanner=null;}
+ }finally{scannerStarting=false;}
+}
+async function stopScanner(){
+ if(html5QrScanner){
+  const scanner=html5QrScanner;html5QrScanner=null;
+  try{if(scanner.isScanning)await scanner.stop()}catch(_){}
+  try{await scanner.clear()}catch(_){}
+ }
+ $("#scannerReader").innerHTML="";
+ $("#scannerPanel").classList.add("hidden");
+}
+$("#scanBtn").addEventListener("click",startScanner);
+$("#stopScanBtn").addEventListener("click",stopScanner);
+window.addEventListener("pagehide",()=>{stopScanner()});
 $("#manualBarcodeBtn").onclick=()=>{const code=prompt("Enter the numbers beneath the barcode:");if(code&&/^\d{8,14}$/.test(code.trim()))lookupBarcode(code.trim());else if(code)alert("Please enter a barcode containing 8–14 digits.");};
 window.addEventListener("pagehide",stopScanner);
 

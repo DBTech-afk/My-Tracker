@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#172a25">
+<meta name="description" content="A personal food, nutrition and weight tracker.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<title>NutriTrack</title>
+<style>
+:root{--bg:#f3f6f3;--panel:#fff;--ink:#1c2925;--muted:#687771;--line:#dce5df;--accent:#24765d;--accent2:#dcefe6;--warn:#bd7b27;--danger:#b64d4d;--shadow:0 8px 28px rgba(25,55,42,.07)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}button,input,select{font:inherit}button{cursor:pointer}.app{max-width:1050px;margin:auto;padding:18px 16px 90px}.top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:4px 0 20px}.brand{font-weight:850;font-size:23px;letter-spacing:-.7px}.brand span{color:var(--accent)}.date{color:var(--muted);font-size:13px}.tabs{display:flex;gap:7px;overflow:auto;padding:4px 0 14px;scrollbar-width:none}.tabs button{border:1px solid var(--line);background:var(--panel);color:var(--muted);padding:10px 14px;border-radius:999px;white-space:nowrap;font-weight:650}.tabs button.active{background:var(--ink);border-color:var(--ink);color:#fff}.page{display:none}.page.active{display:block}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:var(--shadow);min-width:0}.metric-label{font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px}.metric{font-size:29px;font-weight:800;letter-spacing:-1px;margin:6px 0 1px}.sub{font-size:12px;color:var(--muted)}.section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:22px 0 10px}.section-head h2{font-size:18px;margin:0}.btn{border:0;background:var(--accent);color:white;padding:10px 14px;border-radius:11px;font-weight:700}.btn.secondary{background:var(--accent2);color:var(--accent)}.btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--line)}.btn.danger{background:#f8e7e7;color:var(--danger)}.row{display:flex;align-items:center;gap:9px;flex-wrap:wrap}.progress{height:8px;background:#e8eee9;border-radius:20px;overflow:hidden;margin:10px 0 4px}.progress i{display:block;height:100%;background:var(--accent);border-radius:20px;width:0}.nutrient{margin:12px 0}.nutrient-top{display:flex;justify-content:space-between;gap:10px;font-size:13px}.meal{margin:10px 0}.meal h3{font-size:14px;margin:0 0 7px}.food-row{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid var(--line)}.food-row small{display:block;color:var(--muted)}.food-row strong{white-space:nowrap;font-size:13px}.muted{color:var(--muted)}.formgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.field{display:flex;flex-direction:column;gap:5px}.field label{font-size:12px;font-weight:700;color:var(--muted)}input,select{width:100%;border:1px solid var(--line);border-radius:10px;padding:11px 12px;background:#fff;color:var(--ink);min-width:0}input:focus,select:focus{outline:2px solid #9acbb5;border-color:var(--accent)}.form-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}.food-search{display:flex;gap:8px}.food-search input{flex:1}.results{margin-top:10px}.result{display:flex;justify-content:space-between;gap:12px;align-items:center;border-bottom:1px solid var(--line);padding:11px 0}.result small{display:block;color:var(--muted)}.result button{flex-shrink:0}.notice{padding:11px 13px;background:#edf4ef;border-radius:12px;color:#426052;font-size:13px;margin:12px 0}.chart-wrap{height:230px;position:relative}.chart-wrap canvas{width:100%;height:100%}.empty{padding:20px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:12px}.pill{display:inline-block;border-radius:99px;background:var(--accent2);color:var(--accent);font-size:11px;font-weight:750;padding:3px 8px}.footer-note{font-size:12px;color:var(--muted);margin-top:18px}.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}.hidden{display:none!important}
+@media(max-width:700px){.app{padding:13px 12px 90px}.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.metric{font-size:25px}.card{padding:13px;border-radius:15px}.two{grid-template-columns:1fr}.formgrid{grid-template-columns:1fr 1fr}.top{margin-bottom:12px}}
+@media(max-width:390px){.formgrid{grid-template-columns:1fr}.metric{font-size:23px}}
+</style>
+</head>
+<body>
+<main class="app" id="app">
+<header class="top"><div><div class="brand">Nutri<span>Track</span></div><div class="date" id="todayLabel"></div></div><span class="pill">Personal tracker</span></header>
+<nav class="tabs" aria-label="Main navigation">
+<button class="active" data-page="dashboard">Overview</button><button data-page="food">Food log</button><button data-page="weight">Weight</button><button data-page="trends">Trends</button><button data-page="settings">Goals & data</button>
+</nav>
+
+<section class="page active" id="dashboard">
+<div class="grid">
+<div class="card"><div class="metric-label">Current weight</div><div class="metric" id="dashWeight">—</div><div class="sub" id="weightChange">Add your first weigh-in</div></div>
+<div class="card"><div class="metric-label">Calories</div><div class="metric" id="dashCalories">0</div><div class="sub" id="calorieGoalText">of 2,000 kcal goal</div><div class="progress"><i id="calorieBar"></i></div></div>
+<div class="card"><div class="metric-label">Sugar</div><div class="metric" id="dashSugar">0 g</div><div class="sub" id="sugarGoalText">of 50 g goal</div><div class="progress"><i id="sugarBar"></i></div></div>
+<div class="card"><div class="metric-label">Sodium</div><div class="metric" id="dashSodium">0 mg</div><div class="sub" id="sodiumGoalText">of 2,300 mg goal</div><div class="progress"><i id="sodiumBar"></i></div></div>
+</div>
+<div class="section-head"><h2>Today's nutrition</h2><button class="btn secondary" id="quickAdd">+ Add food</button></div>
+<div class="card">
+<div class="nutrient"><div class="nutrient-top"><span>Protein</span><b id="proteinText">0 g</b></div><div class="progress"><i id="proteinBar"></i></div></div>
+<div class="nutrient"><div class="nutrient-top"><span>Carbohydrates</span><b id="carbText">0 g</b></div><div class="progress"><i id="carbBar"></i></div></div>
+<div class="nutrient"><div class="nutrient-top"><span>Fat</span><b id="fatText">0 g</b></div><div class="progress"><i id="fatBar"></i></div></div>
+</div>
+<div class="section-head"><h2>Today's food</h2><span class="muted" id="entryCount"></span></div>
+<div class="card" id="todayMeals"></div>
+<p class="footer-note">Your entries are stored on this device. Nutrition values are estimates and depend on the food and serving entered.</p>
+</section>
+
+<section class="page" id="food">
+<div class="section-head"><h2>Food diary</h2><input type="date" id="foodDate" style="max-width:165px"></div>
+<div class="card">
+<h3 style="margin:0 0 12px">Add a food</h3>
+<div class="food-search"><input id="foodSearch" placeholder="Search foods or branded products"><button class="btn" id="searchBtn">Search</button></div>
+<div class="notice">Search the built-in starter list or Open Food Facts online. Online search needs an internet connection. You can also add your own food below.</div>
+<div id="searchResults" class="results"></div>
+</div>
+<div class="card" style="margin-top:12px">
+<h3 style="margin:0 0 12px">Manual food entry</h3>
+<form id="manualFood">
+<div class="formgrid">
+<div class="field"><label>Food name</label><input name="name" required placeholder="e.g. Grilled chicken breast"></div>
+<div class="field"><label>Meal</label><select name="meal"><option>Breakfast</option><option>Lunch</option><option>Dinner</option><option>Snack</option></select></div>
+<div class="field"><label>Calories (kcal)</label><input name="calories" type="number" min="0" step="1" value="0"></div>
+<div class="field"><label>Serving description</label><input name="serving" placeholder="1 serving"></div>
+<div class="field"><label>Sugar (g)</label><input name="sugar" type="number" min="0" step=".1" value="0"></div>
+<div class="field"><label>Sodium (mg)</label><input name="sodium" type="number" min="0" step="1" value="0"></div>
+<div class="field"><label>Protein (g)</label><input name="protein" type="number" min="0" step=".1" value="0"></div>
+<div class="field"><label>Carbs (g)</label><input name="carbs" type="number" min="0" step=".1" value="0"></div>
+<div class="field"><label>Fat (g)</label><input name="fat" type="number" min="0" step=".1" value="0"></div>
+</div><div class="form-actions"><button class="btn" type="submit">Add to diary</button></div>
+</form>
+</div>
+<div class="section-head"><h2>Saved foods & meals</h2></div>
+<div class="card"><p class="muted" style="margin-top:0">Save a frequent meal from the diary to add it again later.</p><div id="savedFoods"></div></div>
+</section>
+
+<section class="page" id="weight">
+<div class="two">
+<div class="card"><h2 style="margin:0 0 12px;font-size:18px">Record weight</h2>
+<form id="weightForm"><div class="field"><label>Date</label><input type="date" name="date" required></div><div class="field" style="margin-top:10px"><label>Weight (lb)</label><input type="number" name="weight" min="1" max="1500" step=".1" required placeholder="e.g. 210.5"></div><div class="form-actions"><button class="btn">Save weigh-in</button></div></form></div>
+<div class="card"><div class="metric-label">Goal weight</div><div class="metric" id="goalWeightDisplay">Not set</div><div class="sub">Set your target in Goals & data</div><div class="metric-label" style="margin-top:18px">Change since first entry</div><div class="metric" id="totalWeightChange">—</div></div>
+</div>
+<div class="section-head"><h2>Weight history</h2></div><div class="card" id="weightHistory"></div>
+</section>
+
+<section class="page" id="trends">
+<div class="section-head"><h2>Trends over time</h2><select id="rangeSelect" style="max-width:150px"><option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option><option value="90">Last 90 days</option><option value="365">Last year</option></select></div>
+<div class="card"><h3 style="margin:0 0 8px">Weight (lb)</h3><div class="chart-wrap"><canvas id="weightChart" aria-label="Weight trend chart"></canvas></div></div>
+<div class="card" style="margin-top:12px"><h3 style="margin:0 0 8px">Daily calories</h3><div class="chart-wrap"><canvas id="calorieChart" aria-label="Calorie trend chart"></canvas></div></div>
+<div class="card" style="margin-top:12px"><h3 style="margin:0 0 8px">Sugar (g)</h3><div class="chart-wrap"><canvas id="sugarChart" aria-label="Sugar trend chart"></canvas></div></div>
+<div class="card" style="margin-top:12px"><h3 style="margin:0 0 8px">Sodium (mg)</h3><div class="chart-wrap"><canvas id="sodiumChart" aria-label="Sodium trend chart"></canvas></div></div>
+</section>
+
+<section class="page" id="settings">
+<div class="card"><h2 style="font-size:18px;margin:0 0 12px">Daily goals</h2>
+<form id="goalsForm"><div class="formgrid">
+<div class="field"><label>Calorie goal (kcal)</label><input name="calories" type="number" min="1" max="10000"></div>
+<div class="field"><label>Sugar limit (g)</label><input name="sugar" type="number" min="0" max="1000" step=".1"></div>
+<div class="field"><label>Sodium limit (mg)</label><input name="sodium" type="number" min="0" max="20000"></div>
+<div class="field"><label>Protein goal (g)</label><input name="protein" type="number" min="0" max="1000"></div>
+<div class="field"><label>Carbs goal (g)</label><input name="carbs" type="number" min="0" max="1500"></div>
+<div class="field"><label>Fat goal (g)</label><input name="fat" type="number" min="0" max="1000"></div>
+<div class="field"><label>Target weight (lb)</label><input name="weight" type="number" min="1" max="1500" step=".1"></div>
+</div><div class="form-actions"><button class="btn">Save goals</button></div></form></div>
+<div class="card" style="margin-top:12px"><h2 style="font-size:18px;margin:0 0 8px">Your data</h2><p class="muted">Export a CSV backup of your food diary and weigh-ins. Data stays in this browser unless you export it.</p><div class="row"><button class="btn secondary" id="exportBtn">Export CSV</button><button class="btn ghost" id="backupBtn">Download backup</button><label class="btn ghost" for="importFile">Import backup</label><input id="importFile" type="file" accept="application/json" class="hidden"></div><div class="form-actions"><button class="btn danger" id="clearBtn">Erase all local data</button></div></div>
+<div class="notice">Health note: this app is a tracking aid, not medical advice. Daily targets vary by person; use targets recommended by your healthcare professional when applicable.</div>
+</section>
+</main>
+<script src="app.js"></script>
+</body></html>
